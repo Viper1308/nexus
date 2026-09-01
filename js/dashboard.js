@@ -396,12 +396,12 @@ const Dashboard = (() => {
     renderOnRepeat();
   }
 
-  /* ---------------- "On repeat" — one picture, rotating every 2 minutes ----------------
+  /* ---------------- "On repeat" — one picture, rotating every 10 seconds ----------------
      A separate, small feature card (distinct from the Gallery strip above): shows a
      single picture from the Gallery at a time, and swaps to a new one automatically
-     every 2 minutes. Picks a fresh random picture each interval (never the one
+     every 10 seconds. Picks a fresh random picture each interval (never the one
      currently showing, when there's more than one to choose from). */
-  const ON_REPEAT_MS = 2 * 60 * 1000;
+  const ON_REPEAT_MS = 10 * 1000;
   let onRepeatTimer = null;
   let onRepeatCurrentId = null;
 

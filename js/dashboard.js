@@ -349,21 +349,92 @@ const Dashboard = (() => {
     }).join('');
   }
 
-  /* ---------------- gallery bits ---------------- */
+  /* ---------------- D-Day hero (CLAT + IIM-B UGAT countdown) ----------------
+     Reads straight from the same 'docket.examdate.<key>' Store keys DocketExtra
+     owns, with its own copy of the label + seed date, so this renders correctly
+     even on the very first paint (Dashboard.init runs before Docket's own init
+     seeds those keys). DocketExtra.refreshDdayHero() (if present) re-paints this
+     the moment a date is edited on the Docket screen, so the two stay in sync. */
+  const DDAY_EXAMS = [
+    { key: 'clat', label: 'CLAT 2027', seed: '2027-12-06' },
+    { key: 'iimb', label: 'IIM Bangalore UGAT', seed: '2026-11-15' }
+  ];
+  function renderDdayHero() {
+    const host = document.getElementById('dashDdayHero');
+    if (!host) return;
+    host.innerHTML = DDAY_EXAMS.map(ex => {
+      const storeKey = 'docket.examdate.' + ex.key;
+      const val = Store.get(storeKey, '') || ex.seed;
+      const days = Math.ceil((new Date(val + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000);
+      const past = days < 0;
+      const text = days > 0 ? `${days}` : days === 0 ? 'Today' : `+${Math.abs(days)}`;
+      return `<div class="dday-big${past ? ' past' : ''}">
+        <div class="dday-big-label">${esc(ex.label)}</div>
+        <div class="dday-big-num">${esc(text)}<span class="dday-big-unit">${past ? '' : 'd'}</span></div>
+      </div>`;
+    }).join('');
+  }
+
+  /* ---------------- gallery bits (original static strip) ---------------- */
   function refreshGalleryBits() {
     const n = Gallery.count();
     ['dashGalleryCount', 'dashGalleryStripCount'].forEach(id => { const e = document.getElementById(id); if (e) e.textContent = n ? String(n) : (id === 'dashGalleryCount' ? '0' : ''); });
     const strip = document.getElementById('dashGalleryStrip');
-    if (!strip) return;
-    const recent = Gallery.recent(8);
-    if (!recent.length) { strip.innerHTML = `<p class="dash-empty">No pictures yet.</p>`; return; }
-    strip.innerHTML = '';
-    recent.forEach(rec => {
-      const cell = el('div', 'dash-gal-cell');
-      strip.appendChild(cell);
-      Store.getImg('gal:' + rec.id).then(u => { if (u) cell.style.backgroundImage = `url(${u})`; });
-      cell.onclick = () => Gallery.openModal();
-    });
+    if (strip) {
+      const recent = Gallery.recent(8);
+      if (!recent.length) {
+        strip.innerHTML = `<p class="dash-empty">No pictures yet.</p>`;
+      } else {
+        strip.innerHTML = '';
+        recent.forEach(rec => {
+          const cell = el('div', 'dash-gal-cell');
+          strip.appendChild(cell);
+          Store.getImg('gal:' + rec.id).then(u => { if (u) cell.style.backgroundImage = `url(${u})`; });
+          cell.onclick = () => Gallery.openModal();
+        });
+      }
+    }
+    renderOnRepeat();
+  }
+
+  /* ---------------- "On repeat" — one picture, rotating every 2 minutes ----------------
+     A separate, small feature card (distinct from the Gallery strip above): shows a
+     single picture from the Gallery at a time, and swaps to a new one automatically
+     every 2 minutes. Picks a fresh random picture each interval (never the one
+     currently showing, when there's more than one to choose from). */
+  const ON_REPEAT_MS = 2 * 60 * 1000;
+  let onRepeatTimer = null;
+  let onRepeatCurrentId = null;
+
+  function onRepeatStop() { if (onRepeatTimer) { clearInterval(onRepeatTimer); onRepeatTimer = null; } }
+  function onRepeatPickNext(pool) {
+    if (!pool.length) return null;
+    if (pool.length === 1) return pool[0];
+    let pick;
+    do { pick = pool[Math.floor(Math.random() * pool.length)]; } while (pick.id === onRepeatCurrentId);
+    return pick;
+  }
+  function onRepeatShow(rec) {
+    const host = document.getElementById('dashOnRepeat');
+    if (!host || !rec) return;
+    onRepeatCurrentId = rec.id;
+    Store.getImg('gal:' + rec.id).then(u => { if (u) host.style.backgroundImage = `url(${u})`; });
+  }
+  function renderOnRepeat() {
+    const card = document.getElementById('dashOnRepeatCard');
+    const host = document.getElementById('dashOnRepeat');
+    if (!card || !host) return;
+    onRepeatStop();
+    card.onclick = () => Gallery.openModal();
+    const pool = Gallery.all();
+    if (!pool.length) {
+      host.style.backgroundImage = '';
+      card.classList.add('empty');
+      return;
+    }
+    card.classList.remove('empty');
+    onRepeatShow(onRepeatPickNext(pool));
+    onRepeatTimer = setInterval(() => onRepeatShow(onRepeatPickNext(Gallery.all())), ON_REPEAT_MS);
   }
 
   /* ---------------- subject-balance radar ---------------- */
@@ -496,6 +567,7 @@ const Dashboard = (() => {
   /* ---------------- full render ---------------- */
   function render() {
     renderHeader();
+    renderDdayHero();
     wireTodoInput();
     renderTodo();
     renderStreak();
@@ -515,5 +587,5 @@ const Dashboard = (() => {
 
   function init() { render(); }
 
-  return { init, render, refreshGalleryBits };
+  return { init, render, refreshGalleryBits, refreshDdayHero: renderDdayHero };
 })();

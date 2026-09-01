@@ -74,14 +74,16 @@ const Cal = (() => {
 
     if (mode === 'month' || mode === 'week') {
       const dow = el('div', 'dow');
-      ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(d => dow.appendChild(el('span', '', d)));
+      ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].forEach(d => dow.appendChild(el('span', '', d)));
       box.appendChild(dow);
     }
 
     if (mode === 'month') {
       title.textContent = `${MON[cursor.getMonth()]} ${cursor.getFullYear()}`;
       const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
-      const shift = (first.getDay() + 6) % 7;
+      // JavaScript numbers Sunday as 0, which is exactly the first column
+      // for this calendar.
+      const shift = first.getDay();
       const g = el('div', 'grid-m');
       for (let n = 0; n < 42; n++) {
         const d = new Date(first); d.setDate(1 - shift + n);
@@ -90,7 +92,7 @@ const Cal = (() => {
       box.appendChild(g);
     }
     else if (mode === 'week') {
-      const s = new Date(cursor); s.setDate(s.getDate() - ((s.getDay() + 6) % 7));
+      const s = new Date(cursor); s.setDate(s.getDate() - s.getDay());
       const e = new Date(s); e.setDate(e.getDate() + 6);
       title.textContent = `${s.getDate()} ${MON[s.getMonth()].slice(0, 3)} – ${e.getDate()} ${MON[e.getMonth()].slice(0, 3)} ${e.getFullYear()}`;
       const g = el('div', 'grid-w');

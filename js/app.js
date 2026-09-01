@@ -158,6 +158,18 @@
     }
   }
 
+  // Install the sidebar router independently of feature initialization.
+  // This is deliberately delegated at document level: a broken optional
+  // widget must never leave the navigation controls inert.
+  function wireRouting() {
+    if (document.documentElement.dataset.nexusRouting === 'ready') return;
+    document.documentElement.dataset.nexusRouting = 'ready';
+    document.addEventListener('click', e => {
+      const item = e.target.closest('.nav-item[data-view]');
+      if (item) switchView(item.dataset.view);
+    });
+  }
+
   /* ──────── CLOCK ──────── */
   function clock() {
     const n = new Date();
@@ -290,7 +302,7 @@
     // Wire and activate navigation before initializing individual modules.
     // Previously an exception in any module below stopped execution here,
     // leaving every `.view` hidden and every sidebar tab inert.
-    document.querySelectorAll('.nav-item[data-view]').forEach(m => { m.onclick = () => switchView(m.dataset.view); });
+    wireRouting();
     switchView(Store.get('ui.view', 'dashboard'));
 
     const safeInit = (name, fn) => {
@@ -342,5 +354,8 @@
     switchView(current || Store.get('ui.view', 'dashboard'));
   }
 
-  document.addEventListener('DOMContentLoaded', checkLogin);
+  document.addEventListener('DOMContentLoaded', () => {
+    wireRouting();
+    checkLogin();
+  });
 })();

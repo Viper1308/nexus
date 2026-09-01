@@ -115,6 +115,8 @@
           </div>
         </div>
 
+        <div class="dday-hero" id="dashDdayHero"></div>
+
         <div class="dash-row2">
           <div class="card dash-status">
             <div class="orbit-wrap">
@@ -138,31 +140,20 @@
             </div>
           </div>
 
-          <div class="dash-side-stack">
-            <div class="card dash-gallery-hero">
-              <h4>On repeat <span class="dash-count" id="dashGalleryHeroCount"></span></h4>
-              <div class="dash-gallery-viewport" id="dashGalleryHero">
-                <div class="dash-gallery-shade"></div>
-                <div class="dash-gallery-copy"><span id="dashGalleryHeroMeta">Your gallery, in rotation.</span></div>
-              </div>
+          <div class="dash-right-col">
+            <div class="card dash-onrepeat empty" id="dashOnRepeatCard">
+              <h4>On repeat</h4>
+              <div class="dash-onrepeat-img" id="dashOnRepeat"></div>
+              <p class="dash-onrepeat-label">Your gallery, in rotation.</p>
             </div>
+
             <div class="card dash-streak">
-              <h4>Focus streak <span class="dash-count">Scheduled days need one completion</span></h4>
+              <h4>Focus streak</h4>
               <div class="streak-num-row"><b id="dashStreakNum">0</b><span>days</span></div>
               <div class="streak-grid" id="dashStreakGrid"></div>
-              <div class="streak-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+              <div class="streak-dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
             </div>
           </div>
-        </div>
-
-        <div class="card dash-countdowns">
-          <div class="dash-countdown-head"><h4>Entrance countdowns <span class="dash-count">MM:DD:HH:MM:SS</span></h4></div>
-          <div class="dash-countdown-form">
-            <input class="inp" id="dashCountdownLabel" placeholder="Entrance / exam name" maxlength="80">
-            <input class="inp" id="dashCountdownAt" type="datetime-local">
-            <button class="btn" id="dashCountdownAdd">Add timer</button>
-          </div>
-          <div class="dash-countdown-list" id="dashCountdownList"></div>
         </div>
 
         <div class="dash-stats-row" id="dashStatRow"></div>
@@ -388,6 +379,7 @@
           </aside>
 
           <div class="docket-main">
+            <div class="dday-hero" id="docketDdayHero"></div>
             <div class="docket-header">
               <div class="eyebrow-row">
                 <p class="eyebrow" id="ep-eyebrow">Exam Docket</p>

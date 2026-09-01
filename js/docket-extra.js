@@ -27,8 +27,34 @@ const DocketExtra = (() => {
 
   let currentExam = 'clat';
 
+  // D-Day exam dates. Seeded once with real dates on first run; after that the
+  // person's own edits (via either date input) always win — seeding never
+  // overwrites an existing value.
+  const DDAY_SEED = { clat: '2027-12-06', iimb: '2026-11-15' };
+  const DDAY_EXAMS = ['clat', 'iimb'];
+
+  function seedExamDates() {
+    DDAY_EXAMS.forEach(k => {
+      const key = 'docket.examdate.' + k;
+      if (!Store.get(key, '')) Store.set(key, DDAY_SEED[k]);
+    });
+  }
+
   function mockEntries(examKey) {
     return Store.get('docket.' + META[examKey].storageKey + '-mocks', []) || [];
+  }
+
+  function examDate(examKey) { return Store.get('docket.examdate.' + examKey, ''); }
+  function setExamDate(examKey, val) { Store.set('docket.examdate.' + examKey, val); }
+
+  // Shared D-Day math, used by both the Docket screen's big display and the
+  // Dashboard hero banner, so the two are always reading the same number.
+  function ddayInfo(examKey) {
+    const val = examDate(examKey);
+    if (!val) return { val: '', days: null, text: '—', past: false };
+    const days = Math.ceil((new Date(val + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000);
+    const text = days > 0 ? `${days}` : days === 0 ? 'Today' : `+${Math.abs(days)}`;
+    return { val, days, text, past: days < 0 };
   }
 
   function renderSecProgress() {
@@ -48,17 +74,26 @@ const DocketExtra = (() => {
   function renderDateBar() {
     const host = document.getElementById('docketDateBar');
     if (!host) return;
-    const key = 'docket.examdate.' + currentExam;
-    const val = Store.get(key, '');
-    let ddText = '—';
-    if (val) {
-      const days = Math.ceil((new Date(val + 'T00:00:00') - new Date(new Date().toDateString())) / 86400000);
-      ddText = days > 0 ? `${days} days` : days === 0 ? 'Today' : `${Math.abs(days)} days ago`;
-    }
+    const { val, text, days, past } = ddayInfo(currentExam);
+    const longText = !val ? '—' : days > 0 ? `${days} days` : days === 0 ? 'Today' : `${Math.abs(days)} days ago`;
     host.innerHTML = `
       <div class="dd-field"><span>Exam date</span><input type="date" id="docketExamDate" value="${val}"></div>
-      <div class="dd-field"><span>D-Day</span><span class="dd-num">${ddText}</span></div>`;
-    document.getElementById('docketExamDate').onchange = e => { Store.set(key, e.target.value); renderDateBar(); };
+      <div class="dd-field"><span>D-Day</span><span class="dd-num">${longText}</span></div>`;
+    document.getElementById('docketExamDate').onchange = e => { setExamDate(currentExam, e.target.value); renderDateBar(); renderDdayHero(); if (typeof Dashboard !== 'undefined') Dashboard.refreshDdayHero(); };
+    renderDdayHero();
+  }
+
+  /* ---------------- big D-Day hero, Docket screen ---------------- */
+  function renderDdayHero() {
+    const host = document.getElementById('docketDdayHero');
+    if (!host) return;
+    host.innerHTML = DDAY_EXAMS.map(k => {
+      const { text, past } = ddayInfo(k);
+      return `<div class="dday-big${past ? ' past' : ''}${k === currentExam ? ' current' : ''}">
+        <div class="dday-big-label">${esc(META[k].label)}</div>
+        <div class="dday-big-num">${esc(text)}<span class="dday-big-unit">${past ? '' : 'd'}</span></div>
+      </div>`;
+    }).join('');
   }
 
   function renderMocks() {
@@ -91,6 +126,7 @@ const DocketExtra = (() => {
   }
 
   function init() {
+    seedExamDates();
     document.querySelectorAll('.docket-examlist .tab-btn[data-exam]').forEach(btn => {
       btn.addEventListener('click', () => { currentExam = btn.dataset.exam; refresh(); });
     });
@@ -102,5 +138,5 @@ const DocketExtra = (() => {
     refresh();
   }
 
-  return { init, refresh };
+  return { init, refresh, ddayInfo, examLabel: k => META[k] ? META[k].label : k, DDAY_EXAMS };
 })();

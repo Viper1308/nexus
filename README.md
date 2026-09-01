@@ -1,10 +1,10 @@
-# KASI — Knowledge & Areas of Self-Improvement
+# NEXUS
 
-(Formerly Polymath OS — same app, same data, new name and a new home screen.)
+(Formerly KASI / Polymath OS — same app, same data, new name and look.)
 
-A private life-planner + seven-screen dashboard. No accounts, no server, no one else's copy of your data.
+A private life-planner + dashboard. No accounts, no server, no one else's copy of your data. 100% static — no build step, which is what makes it a one-click Vercel deploy.
 
-**Login:** `admin` / `Timmyboi1!` (offline mode). Set up Supabase below for real accounts + sync across devices.
+**Login:** if `js/config.js` has no Supabase keys in it, it falls back to `admin` / `Timmyboi1!` (offline mode). With Supabase configured (as this project already is), you'll see a real email/password sign-in instead — see "Sync across devices" below.
 
 ---
 
@@ -16,7 +16,7 @@ You need: a browser. That's it. No terminal, no command line, nothing to install
 
 1. Go to **github.com** and click **Sign up**. Use any email. Pick a username. Verify.
 2. Once you're in, click the **+** button in the top-right corner → **New repository**.
-3. Repository name: `polymath-os`
+3. Repository name: `nexus` (or anything you like)
 4. Set it to **Public** (Vercel's free tier requires this; your login gate keeps people out).
 5. Leave everything else default. Click **Create repository**.
 6. On the next page, you'll see an empty repo. Click the link that says **uploading an existing file**.
@@ -27,22 +27,23 @@ You need: a browser. That's it. No terminal, no command line, nothing to install
    - `js/` folder (with all the `.js` files inside)
    - `README.md`
 9. Scroll down, click **Commit changes**.
-10. Done. Your code is on GitHub. The URL looks like `github.com/yourusername/polymath-os`.
+10. Done. Your code is on GitHub. The URL looks like `github.com/yourusername/nexus`.
 
 ### Part 2 — Vercel (turns GitHub into a website)
 
 1. Go to **vercel.com** and click **Sign Up** → **Continue with GitHub**. Authorise it.
 2. You land on the Vercel dashboard. Click **Add New…** → **Project**.
-3. You'll see your GitHub repos listed. Find `polymath-os` and click **Import**.
+3. You'll see your GitHub repos listed. Find `nexus` and click **Import**.
 4. On the "Configure Project" screen:
-   - **Framework Preset:** leave as `Other`
+   - **Framework Preset:** leave as `Other` (there's no `package.json`, so Vercel won't try to run a build)
    - **Root Directory:** leave blank (it's the repo root)
    - **Build Command:** leave blank
    - **Output Directory:** leave blank
+   - A `vercel.json` is included for basic security headers and static-asset caching — nothing to configure, it's picked up automatically.
 5. Click **Deploy**.
 6. Wait 15–30 seconds. It'll say "Congratulations!"
-7. Click the preview or the URL. It looks like `polymath-os-yourusername.vercel.app`.
-8. You'll see the login screen. Type `admin` and `Timmyboi1!`. You're in.
+7. Click the preview or the URL. It looks like `nexus-yourusername.vercel.app`.
+8. You'll see the login screen. If Supabase is configured, create an account with any email + password; otherwise use `admin` / `Timmyboi1!`.
 
 ### Part 3 — Custom domain (optional, e.g. os.datamotion.in)
 

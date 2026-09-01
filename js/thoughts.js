@@ -107,14 +107,14 @@ const Margin = (() => {
     shown.forEach(i => {
       const c = el('div', 'note-card' + (i.kind === 'quote' ? ' quote' : '') + (i.img ? ' has-img' : ''));
       const body = esc(i.text).replace(/#([\w-]+)/g, '<span class="tag">#$1</span>');
-      c.innerHTML = `${i.img ? '<div class="note-img"></div>' : ''}
+      c.innerHTML = `${i.img ? '<img class="note-img" alt="">' : ''}
         ${i.text ? `<p>${body}</p>` : ''}${i.who ? `<div class="who">— ${esc(i.who)}</div>` : ''}
         <div class="when">${new Date(i.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
         <button class="x">✕</button>`;
       if (i.img) {
         const imgEl = c.querySelector('.note-img');
         Store.getImg('mg:' + i.img).then(u => {
-          if (u) { imgEl.style.backgroundImage = `url(${u})`; imgEl.onclick = () => openLightbox(u, i.who ? `— ${i.who}` : ''); }
+          if (u) { imgEl.src = u; imgEl.onclick = () => openLightbox(u, i.who ? `— ${i.who}` : ''); }
         });
       }
       c.querySelectorAll('.tag').forEach(t => t.onclick = () => { q = t.textContent; document.getElementById('thSearch').value = q; render(); });

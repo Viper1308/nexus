@@ -442,11 +442,9 @@ const Dashboard = (() => {
     if (!svg) return;
     if (typeof Docket === 'undefined' || !Docket.sectionProgress) return;
     const axes = [
-      { l: 'ENG', v: Docket.sectionProgress('clat', 'english').pct },
-      { l: 'QA', v: Docket.sectionProgress('clat', 'quant').pct },
-      { l: 'LR', v: Docket.sectionProgress('clat', 'logical').pct },
-      { l: 'LGL', v: Docket.sectionProgress('clat', 'legal').pct },
-      { l: 'GK', v: Docket.sectionProgress('clat', 'gk').pct }
+      { l: 'ENG', v: Docket.sectionProgress('iimb', 'english').pct },
+      { l: 'QADI', v: Docket.sectionProgress('iimb', 'quant').pct },
+      { l: 'LR', v: Docket.sectionProgress('iimb', 'logical').pct }
     ];
     const max = 100;
     const cx = 110, cy = 96, R = 72, n = axes.length;

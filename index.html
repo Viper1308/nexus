@@ -11,8 +11,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css">
-<link rel="stylesheet" href="css/hud-theme.css">
+<link rel="stylesheet" href="css/style.css?v=20260901.3">
+<link rel="stylesheet" href="css/hud-theme.css?v=20260901.3">
 </head>
 <body>
 
@@ -138,12 +138,31 @@
             </div>
           </div>
 
-          <div class="card dash-streak">
-            <h4>Focus streak</h4>
-            <div class="streak-num-row"><b id="dashStreakNum">0</b><span>days</span></div>
-            <div class="streak-grid" id="dashStreakGrid"></div>
-            <div class="streak-dow"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
+          <div class="dash-side-stack">
+            <div class="card dash-gallery-hero">
+              <h4>On repeat <span class="dash-count" id="dashGalleryHeroCount"></span></h4>
+              <div class="dash-gallery-viewport" id="dashGalleryHero">
+                <div class="dash-gallery-shade"></div>
+                <div class="dash-gallery-copy"><span id="dashGalleryHeroMeta">Your gallery, in rotation.</span></div>
+              </div>
+            </div>
+            <div class="card dash-streak">
+              <h4>Focus streak <span class="dash-count">Scheduled days need one completion</span></h4>
+              <div class="streak-num-row"><b id="dashStreakNum">0</b><span>days</span></div>
+              <div class="streak-grid" id="dashStreakGrid"></div>
+              <div class="streak-dow"><span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span></div>
+            </div>
           </div>
+        </div>
+
+        <div class="card dash-countdowns">
+          <div class="dash-countdown-head"><h4>Entrance countdowns <span class="dash-count">MM:DD:HH:MM:SS</span></h4></div>
+          <div class="dash-countdown-form">
+            <input class="inp" id="dashCountdownLabel" placeholder="Entrance / exam name" maxlength="80">
+            <input class="inp" id="dashCountdownAt" type="datetime-local">
+            <button class="btn" id="dashCountdownAdd">Add timer</button>
+          </div>
+          <div class="dash-countdown-list" id="dashCountdownList"></div>
         </div>
 
         <div class="dash-stats-row" id="dashStatRow"></div>
@@ -482,22 +501,22 @@
 
 <div class="toast" id="toast" hidden></div>
 
-<script src="js/config.js"></script>
-<script src="js/store.js"></script>
-<script src="js/sync.js"></script>
-<script src="js/themes.js"></script>
-<script src="js/connections.js"></script>
-<script src="js/profile.js"></script>
-<script src="js/web.js"></script>
-<script src="js/books.js"></script>
-<script src="js/calendar.js"></script>
-<script src="js/thoughts.js"></script>
-<script src="js/stacks.js"></script>
-<script src="js/gallery.js"></script>
-<script src="js/dashboard.js"></script>
-<script src="js/docket.js"></script>
-<script src="js/docket-extra.js"></script>
-<script src="js/mobile.js"></script>
-<script src="js/app.js"></script>
+<script src="js/config.js?v=20260901.3"></script>
+<script src="js/store.js?v=20260901.3"></script>
+<script src="js/sync.js?v=20260901.3"></script>
+<script src="js/themes.js?v=20260901.3"></script>
+<script src="js/connections.js?v=20260901.3"></script>
+<script src="js/profile.js?v=20260901.3"></script>
+<script src="js/web.js?v=20260901.3"></script>
+<script src="js/books.js?v=20260901.3"></script>
+<script src="js/calendar.js?v=20260901.3"></script>
+<script src="js/thoughts.js?v=20260901.3"></script>
+<script src="js/stacks.js?v=20260901.3"></script>
+<script src="js/gallery.js?v=20260901.3"></script>
+<script src="js/dashboard.js?v=20260901.3"></script>
+<script src="js/docket.js?v=20260901.3"></script>
+<script src="js/docket-extra.js?v=20260901.3"></script>
+<script src="js/mobile.js?v=20260901.3"></script>
+<script src="js/app.js?v=20260901.3"></script>
 </body>
 </html>

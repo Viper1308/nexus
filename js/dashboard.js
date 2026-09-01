@@ -374,25 +374,11 @@ const Dashboard = (() => {
     }).join('');
   }
 
-  /* ---------------- gallery bits (original static strip) ---------------- */
+  /* ---------------- gallery bits (left-nav badge count) ---------------- */
   function refreshGalleryBits() {
     const n = Gallery.count();
-    ['dashGalleryCount', 'dashGalleryStripCount'].forEach(id => { const e = document.getElementById(id); if (e) e.textContent = n ? String(n) : (id === 'dashGalleryCount' ? '0' : ''); });
-    const strip = document.getElementById('dashGalleryStrip');
-    if (strip) {
-      const recent = Gallery.recent(8);
-      if (!recent.length) {
-        strip.innerHTML = `<p class="dash-empty">No pictures yet.</p>`;
-      } else {
-        strip.innerHTML = '';
-        recent.forEach(rec => {
-          const cell = el('div', 'dash-gal-cell');
-          strip.appendChild(cell);
-          Store.getImg('gal:' + rec.id).then(u => { if (u) cell.style.backgroundImage = `url(${u})`; });
-          cell.onclick = () => Gallery.openModal();
-        });
-      }
-    }
+    const e = document.getElementById('dashGalleryCount');
+    if (e) e.textContent = n ? String(n) : '0';
     renderOnRepeat();
   }
 

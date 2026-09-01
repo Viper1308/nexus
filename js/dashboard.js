@@ -153,7 +153,6 @@ const Dashboard = (() => {
     host.innerHTML =
       statCard('check', done, 'Tasks completed') +
       statCard('clock', focusH.toFixed(1), 'Focus hours') +
-      statCard('flame', computeStreak(), 'Day streak') +
       statCard('trend', pct + '%', 'Productivity');
   }
 

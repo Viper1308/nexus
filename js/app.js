@@ -138,13 +138,24 @@
     document.querySelectorAll('.nav-item[data-view]').forEach(t => t.classList.toggle('active', t.dataset.view === v));
     Store.set('ui.view', v);
     const stage = document.querySelector('.stage'); if (stage) stage.scrollTop = 0;
-    if (v === 'web') Web.draw();
-    if (v === 'calendar') Cal.grid();
-    if (v === 'profile') Profile.render();
-    if (v === 'stacks') Stacks.refresh();
-    if (v === 'dashboard') Dashboard.render();
-    if (v === 'thoughts') Margin.render();
-    if (v === 'docket' && typeof DocketExtra !== 'undefined') DocketExtra.refresh();
+    // A problem in one view must never make the whole command centre
+    // unusable.  The sidebar is intentionally still available so the user
+    // can move to another screen while the failing view is diagnosed.
+    try {
+      if (v === 'web') Web.draw();
+      if (v === 'calendar') Cal.grid();
+      if (v === 'profile') Profile.render();
+      if (v === 'stacks') Stacks.refresh();
+      if (v === 'dashboard') Dashboard.render();
+      if (v === 'thoughts') Margin.render();
+      if (v === 'docket' && typeof DocketExtra !== 'undefined') DocketExtra.refresh();
+    } catch (e) {
+      console.error(`Could not render the ${v} view:`, e);
+      const screen = document.getElementById('view-' + v);
+      if (screen && !screen.textContent.trim()) {
+        screen.innerHTML = '<div class="card"><h2>Unable to load this screen</h2><p class="sub">Try another tab, then refresh the page.</p></div>';
+      }
+    }
   }
 
   /* ──────── CLOCK ──────── */
@@ -276,6 +287,17 @@
     Themes.apply(Themes.current());
     buildSettings();
 
+    // Wire and activate navigation before initializing individual modules.
+    // Previously an exception in any module below stopped execution here,
+    // leaving every `.view` hidden and every sidebar tab inert.
+    document.querySelectorAll('.nav-item[data-view]').forEach(m => { m.onclick = () => switchView(m.dataset.view); });
+    switchView(Store.get('ui.view', 'dashboard'));
+
+    const safeInit = (name, fn) => {
+      try { fn(); }
+      catch (e) { console.error(`Could not initialize ${name}:`, e); }
+    };
+
     const dot = document.getElementById('syncDot');
     if (dot && Sync.currentUser && Sync.currentUser()) {
       dot.hidden = false;
@@ -287,14 +309,19 @@
       });
     }
 
-    Mobile.init();
-    Profile.render(); Web.init(); Books.init(); Stacks.init(); Cal.init(); Margin.init();
-    Gallery.init(); Dashboard.init(); Docket.init();
-    if (typeof DocketExtra !== 'undefined') DocketExtra.init();
+    safeInit('mobile layout', () => Mobile.init());
+    safeInit('profile', () => Profile.render());
+    safeInit('web', () => Web.init());
+    safeInit('shelf', () => Books.init());
+    safeInit('stacks', () => Stacks.init());
+    safeInit('calendar', () => Cal.init());
+    safeInit('margin', () => Margin.init());
+    safeInit('gallery', () => Gallery.init());
+    safeInit('dashboard', () => Dashboard.init());
+    safeInit('docket', () => Docket.init());
+    if (typeof DocketExtra !== 'undefined') safeInit('docket summary', () => DocketExtra.init());
     clock(); setInterval(clock, 20000);
     gauge(); setInterval(gauge, 8000);
-
-    document.querySelectorAll('.nav-item[data-view]').forEach(m => { m.onclick = () => switchView(m.dataset.view); });
 
     document.getElementById('topExport').onclick = backup;
     document.getElementById('fileImport').onchange = e => e.target.files[0] && restore(e.target.files[0]);
@@ -310,7 +337,9 @@
       if (n >= 1 && n <= VIEWS.length) switchView(VIEWS[n - 1]);
     });
 
-    switchView(Store.get('ui.view', 'dashboard'));
+    // Repaint the selected view now that all of its data modules have had a
+    // chance to initialize.
+    switchView(current || Store.get('ui.view', 'dashboard'));
   }
 
   document.addEventListener('DOMContentLoaded', checkLogin);

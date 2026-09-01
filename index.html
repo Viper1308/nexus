@@ -103,7 +103,9 @@
     <div class="stage-inner" id="screen">
 
       <!-- ══ DASHBOARD ══ -->
-      <section class="view" id="view-dashboard">
+      <!-- Keep the home screen visible even if a third-party script or a
+           future feature fails before the router finishes booting. -->
+      <section class="view on" id="view-dashboard">
         <div class="page-head-row">
           <div><h1 id="dashHello">Hello</h1><p class="sub">Discipline today, freedom tomorrow.</p></div>
           <div class="dash-datecard">

@@ -1,0 +1,121 @@
+/* ══════════════ LAUNCHER — blank HUD boot screen ══════════════
+   A slim status strip, then a free canvas of draggable HUD nodes,
+   one per section. Nodes are real .nav-item elements (data-view=…)
+   so the existing sidebar click-router opens them full-screen —
+   this file only adds layout/drag visuals, no new navigation logic. */
+
+/* Scoped to `.on` so this never fights the base `.view{display:none}`
+   rule that hides inactive tabs — an ID selector with a bare `display`
+   would otherwise win specificity and leave this view visible always. */
+#view-launcher.on{ display:flex; flex-direction:column; gap:16px; height:calc(100% - 4px); min-height:520px; }
+
+/* ---- top status strip ---- */
+.launcher-topbar{
+  display:flex; align-items:flex-end; justify-content:space-between; gap:16px;
+  flex:0 0 auto; padding-bottom:14px; border-bottom:1px solid var(--line);
+}
+.launcher-greet h1{font-size:26px}
+.launcher-status{
+  display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--dim);
+  padding:7px 14px; border:1px solid var(--line); border-radius:100px;
+  background:color-mix(in srgb, var(--panel) 70%, transparent);
+}
+.launcher-dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 8px 2px color-mix(in srgb,var(--good) 60%,transparent);animation:pulse 2.4s ease-in-out infinite}
+.launcher-status .mono{color:var(--ink);font-weight:500}
+
+/* ---- the blank canvas ---- */
+.launcher-canvas{
+  position:relative; flex:1 1 auto; min-height:440px; border-radius:18px;
+  border:1px solid var(--line); overflow:hidden; isolation:isolate;
+  background:
+    radial-gradient(circle at 50% 46%, color-mix(in srgb,var(--amber) 10%,transparent), transparent 60%),
+    repeating-linear-gradient(0deg, color-mix(in srgb,var(--line) 55%,transparent) 0 1px, transparent 1px 42px),
+    repeating-linear-gradient(90deg, color-mix(in srgb,var(--line) 55%,transparent) 0 1px, transparent 1px 42px),
+    linear-gradient(160deg, color-mix(in srgb,var(--screen-bg) 96%,#000), var(--screen-bg));
+}
+/* corner brackets, HUD-style */
+.launcher-canvas::before, .launcher-canvas::after{
+  content:''; position:absolute; width:34px; height:34px; pointer-events:none; z-index:1;
+  border:2px solid color-mix(in srgb,var(--amber) 55%,transparent);
+}
+.launcher-canvas::before{top:14px;left:14px;border-right:0;border-bottom:0;border-radius:6px 0 0 0}
+.launcher-canvas::after{bottom:14px;right:14px;border-left:0;border-top:0;border-radius:0 0 6px 0}
+/* faint idle arc-reactor ring, purely decorative, centered */
+.launcher-canvas .lc-core{
+  position:absolute; top:50%; left:50%; width:min(46vh,420px); height:min(46vh,420px);
+  transform:translate(-50%,-50%); border-radius:50%; pointer-events:none; z-index:0;
+  border:1px dashed color-mix(in srgb,var(--amber) 22%,transparent);
+  animation:spin 60s linear infinite;
+}
+.launcher-canvas .lc-core::before{
+  content:''; position:absolute; inset:14%; border-radius:50%;
+  border:1px solid color-mix(in srgb,var(--cyan) 18%,transparent);
+}
+
+.launcher-tiles{position:absolute;inset:0;z-index:2}
+
+.launcher-hint{
+  position:absolute; top:14px; left:56px; z-index:2; margin:0;
+  font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--faint);
+}
+.launcher-reset{
+  position:absolute; top:12px; right:12px; z-index:2;
+  font-size:11.5px; padding:7px 12px; border-radius:100px; color:var(--dim);
+  border:1px solid var(--line); background:color-mix(in srgb,var(--panel) 60%,transparent);
+  backdrop-filter:blur(6px); transition:color .15s,border-color .15s;
+}
+.launcher-reset:hover{color:var(--ink);border-color:var(--amber)}
+
+/* ---- draggable node tiles (reuse .nav-item for router compatibility,
+        override its sidebar layout entirely) ---- */
+.launcher-tiles .nav-item.launcher-tile{
+  position:absolute; z-index:2; top:0; left:0;
+  transform:translate(-50%,-50%);
+  width:92px; height:92px; padding:0; gap:0; border-radius:50%;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  background:color-mix(in srgb,var(--panel) 78%,transparent);
+  border:1px solid var(--tile-accent, var(--amber));
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--tile-accent,var(--amber)) 12%,transparent) inset,
+             0 0 18px 1px color-mix(in srgb,var(--tile-accent,var(--amber)) 22%,transparent);
+  color:var(--dim);
+  cursor:grab; touch-action:none; user-select:none; -webkit-user-select:none;
+  transition:box-shadow .15s, border-color .15s, color .15s, background .15s, transform .1s;
+}
+.launcher-tiles .nav-item.launcher-tile .lt-ring{
+  position:absolute; inset:-7px; border-radius:50%;
+  border:1px dashed color-mix(in srgb,var(--tile-accent,var(--amber)) 40%,transparent);
+}
+.launcher-tiles .nav-item.launcher-tile .lt-icon{
+  width:22px; height:22px; display:flex; color:var(--tile-accent, var(--amber));
+}
+.launcher-tiles .nav-item.launcher-tile .lt-icon svg{width:100%;height:100%}
+.launcher-tiles .nav-item.launcher-tile .lt-label{
+  margin-top:5px; font-size:10.5px; font-weight:600; letter-spacing:.02em; color:var(--ink);
+  white-space:nowrap;
+}
+.launcher-tiles .nav-item.launcher-tile:hover{
+  background:color-mix(in srgb,var(--panel-2) 88%,transparent);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--tile-accent,var(--amber)) 22%,transparent) inset,
+             0 0 26px 4px color-mix(in srgb,var(--tile-accent,var(--amber)) 34%,transparent);
+  transform:translate(-50%,-50%) scale(1.06);
+}
+.launcher-tiles .nav-item.launcher-tile.dragging{
+  cursor:grabbing; transition:none; z-index:5;
+  transform:translate(-50%,-50%) scale(1.1);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--tile-accent,var(--amber)) 45%,transparent) inset,
+             0 0 34px 6px color-mix(in srgb,var(--tile-accent,var(--amber)) 45%,transparent);
+}
+
+/* colour rotation, four accents cycling across the eight nodes */
+.launcher-tiles .nav-item.launcher-tile:nth-of-type(4n+1){--tile-accent:var(--amber)}
+.launcher-tiles .nav-item.launcher-tile:nth-of-type(4n+2){--tile-accent:var(--cyan)}
+.launcher-tiles .nav-item.launcher-tile:nth-of-type(4n+3){--tile-accent:var(--rose)}
+.launcher-tiles .nav-item.launcher-tile:nth-of-type(4n+4){--tile-accent:var(--violet)}
+
+@media (max-width:760px){
+  #view-launcher{min-height:0}
+  .launcher-canvas{min-height:380px}
+  .launcher-tiles .nav-item.launcher-tile{width:74px;height:74px}
+  .launcher-tiles .nav-item.launcher-tile .lt-icon{width:18px;height:18px}
+  .launcher-hint{display:none}
+}

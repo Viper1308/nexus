@@ -13,6 +13,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css?v=20260901.9">
 <link rel="stylesheet" href="css/hud-theme.css?v=20260901.9">
+<link rel="stylesheet" href="css/launcher.css?v=20260901.9">
 </head>
 <body>
 
@@ -37,7 +38,11 @@
   <nav class="side-nav">
     <div class="side-brand"><div class="mark">N</div><div class="word">NEXUS</div></div>
     <div class="side-nav-list" id="sideNav">
-      <button class="nav-item tab active" data-view="dashboard">
+      <button class="nav-item tab" data-view="launcher" title="Home — freeform launcher">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/></svg>
+        <span>Home</span>
+      </button>
+      <button class="nav-item tab" data-view="dashboard">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/></svg>
         <span>Dashboard</span>
       </button>
@@ -102,10 +107,37 @@
 
     <div class="stage-inner" id="screen">
 
+      <!-- ══ LAUNCHER — blank HUD home screen, shown on every boot ══ -->
+      <!-- A minimal status strip up top, then a free canvas where each
+           section is a draggable node the user can arrange however they
+           like (Tony Stark HUD style). Positions persist per-device via
+           Store. Click a node (without dragging it) to open that section
+           full-screen — this reuses the existing sidebar router, since
+           each node carries the same data-view attribute as a nav-item. -->
+      <section class="view on" id="view-launcher">
+        <div class="launcher-topbar">
+          <div class="launcher-greet">
+            <h1 id="lnHello">Hello</h1>
+            <p class="sub" id="lnSub">Nothing pinned for today.</p>
+          </div>
+          <div class="launcher-status">
+            <span class="launcher-dot"></span>
+            <span id="lnDate">—</span>
+            <span class="mono" id="lnClock">--:--</span>
+          </div>
+        </div>
+        <div class="launcher-canvas" id="launcherCanvas">
+          <div class="lc-core"></div>
+          <p class="launcher-hint">Drag to arrange · click to open</p>
+          <button class="launcher-reset" id="launcherReset" title="Snap nodes back to the default ring">Reset layout</button>
+          <div class="launcher-tiles" id="launcherTiles"></div>
+        </div>
+      </section>
+
       <!-- ══ DASHBOARD ══ -->
       <!-- Keep the home screen visible even if a third-party script or a
            future feature fails before the router finishes booting. -->
-      <section class="view on" id="view-dashboard">
+      <section class="view" id="view-dashboard">
         <div class="page-head-row">
           <div><h1 id="dashHello">Hello</h1><p class="sub">Discipline today, freedom tomorrow.</p></div>
           <div class="dash-datecard">
@@ -502,6 +534,7 @@
 <script src="js/thoughts.js?v=20260901.9"></script>
 <script src="js/stacks.js?v=20260901.9"></script>
 <script src="js/gallery.js?v=20260901.9"></script>
+<script src="js/launcher.js?v=20260901.9"></script>
 <script src="js/dashboard.js?v=20260901.9"></script>
 <script src="js/docket.js?v=20260901.9"></script>
 <script src="js/docket-extra.js?v=20260901.9"></script>

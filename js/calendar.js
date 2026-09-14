@@ -235,12 +235,6 @@ const Cal = (() => {
   }
   function dashRemoveTask(id) { items = items.filter(x => x.id !== id); save(); }
   function dashColor(calId) { return colorOf(calId); }
-  function todayItems() {
-    const today = iso(new Date());
-    return items.filter(i => i.date === today && visible(i))
-      .sort((a, b) => (a.done ? 1 : 0) - (b.done ? 1 : 0))
-      .map(i => ({ text: i.text, kind: i.kind, done: !!i.done, color: colorOf(i.cal) }));
-  }
 
-  return { init, grid, dashTasks, dashAddTask, dashToggleTask, dashRemoveTask, dashColor, todayItems };
+  return { init, grid, dashTasks, dashAddTask, dashToggleTask, dashRemoveTask, dashColor };
 })();

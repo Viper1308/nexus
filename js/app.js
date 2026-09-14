@@ -264,7 +264,6 @@
     document.getElementById('settingsGear').onclick = () => {
       document.getElementById('settingsPanel').classList.remove('hidden');
       updateSetGauge();
-      if (typeof Pet !== 'undefined') Pet.renderSettings(document.getElementById('asstSettingsRoot'));
     };
     const close = () => document.getElementById('settingsPanel').classList.add('hidden');
     document.getElementById('settingsClose').onclick = close;
@@ -333,7 +332,6 @@
     safeInit('dashboard', () => Dashboard.init());
     safeInit('docket', () => Docket.init());
     if (typeof DocketExtra !== 'undefined') safeInit('docket summary', () => DocketExtra.init());
-    if (typeof Pet !== 'undefined') safeInit('pet', () => Pet.init());
     clock(); setInterval(clock, 20000);
     gauge(); setInterval(gauge, 8000);
 

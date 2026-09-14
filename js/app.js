@@ -4,7 +4,7 @@
    the persistent left sidebar. All view-level init calls below are
    unchanged from before — only how a view is shown has changed. */
 (() => {
-  const VIEWS = ['launcher', 'dashboard', 'profile', 'web', 'books', 'stacks', 'calendar', 'thoughts', 'docket'];
+  const VIEWS = ['dashboard', 'profile', 'web', 'books', 'stacks', 'calendar', 'thoughts', 'docket'];
   let current = null;
   let inited = false;
 
@@ -146,7 +146,6 @@
       if (v === 'calendar') Cal.grid();
       if (v === 'profile') Profile.render();
       if (v === 'stacks') Stacks.refresh();
-      if (v === 'launcher') Launcher.render();
       if (v === 'dashboard') Dashboard.render();
       if (v === 'thoughts') Margin.render();
       if (v === 'docket' && typeof DocketExtra !== 'undefined') DocketExtra.refresh();
@@ -181,8 +180,6 @@
     if (tc) tc.textContent = n.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase() + '  ' + hm;
     const hc = document.getElementById('hubClock');
     if (hc) hc.textContent = hm;
-    const lc = document.getElementById('lnClock');
-    if (lc) lc.textContent = hm;
   }
 
   /* ──────── STORAGE GAUGE ──────── */
@@ -306,9 +303,7 @@
     // Previously an exception in any module below stopped execution here,
     // leaving every `.view` hidden and every sidebar tab inert.
     wireRouting();
-    // Every boot opens on the blank HUD launcher, regardless of whatever
-    // tab was open last session — that's the point of it being a launcher.
-    switchView('launcher');
+    switchView(Store.get('ui.view', 'dashboard'));
 
     const safeInit = (name, fn) => {
       try { fn(); }
@@ -326,7 +321,6 @@
       });
     }
 
-    safeInit('launcher', () => Launcher.init());
     safeInit('mobile layout', () => Mobile.init());
     safeInit('profile', () => Profile.render());
     safeInit('web', () => Web.init());

@@ -33,15 +33,19 @@ const Pet = (() => {
   const IMG_PREFIX = 'pet:pose:';
 
   const D = {
-    cfg: Store.get('pet.cfg', { name: 'Pet', enabled: true }),
+    cfg: Store.get('pet.cfg', { name: 'Pet', enabled: true, scale: 1, manualPose: null }),
     pos: Store.get('pet.pos', null),          // {x,y} in px from top-left, null = use default corner
-    active: Store.get('pet.activePoses', DEFAULT_ACTIVE)
+    active: Store.get('pet.activePoses', DEFAULT_ACTIVE),
+    custom: Store.get('pet.customPoses', [])  // [{k,label,hint}]
   };
-  function activePoses() { return MASTER_POSES.filter(p => D.active.includes(p.k)); }
+  const BASE_W = 92, BASE_H = 150, MAX_CUSTOM = 6;
+  function activePoses() { return MASTER_POSES.filter(p => D.active.includes(p.k)).concat(D.custom); }
+  function allPoseKeys() { return MASTER_KEYS.concat(D.custom.map(c => c.k)); }
   function save() { Store.set('pet.cfg', D.cfg); }
   function savePos() { Store.set('pet.pos', D.pos); }
+  function saveCustom() { Store.set('pet.customPoses', D.custom); }
 
-  let state = 'idle';
+  let state = D.cfg.manualPose || 'idle';
   let sleepTimer = null;
   const imgCache = {};
 
@@ -108,6 +112,7 @@ const Pet = (() => {
     dock.id = 'petDock';
     dock.innerHTML = `<div class="pet-figure" id="petFigure"></div>`;
     document.body.appendChild(dock);
+    applySize(dock);
     placeAtSavedOrDefault(dock);
     wireDrag(dock);
     render();
@@ -115,6 +120,11 @@ const Pet = (() => {
     ['mousemove', 'keydown', 'click'].forEach(ev =>
       document.addEventListener(ev, armSleepTimer, { passive: true }));
     window.addEventListener('resize', () => clampIntoView(dock));
+  }
+
+  function applySize(dock) {
+    dock.style.width = Math.round(BASE_W * D.cfg.scale) + 'px';
+    dock.style.height = Math.round(BASE_H * D.cfg.scale) + 'px';
   }
 
   function placeAtSavedOrDefault(dock) {
@@ -181,13 +191,13 @@ const Pet = (() => {
     popoverOpen = false;
     const pop = document.getElementById('petPopover');
     if (pop) pop.remove();
-    setState('idle');
+    autoState('idle');
   }
   function openPopover() {
     popoverOpen = true;
     const items = (typeof Cal !== 'undefined' && Cal.todayItems) ? Cal.todayItems() : [];
     const overdue = items.some(i => i.kind === 'task' && !i.done);
-    setState(items.length === 0 ? 'success' : (overdue ? 'alert' : 'talking'));
+    autoState(items.length === 0 ? 'success' : (overdue ? 'alert' : 'talking'));
 
     const dock = document.getElementById('petDock');
     const pop = el('div', 'pet-popover');
@@ -210,7 +220,8 @@ const Pet = (() => {
             </div>`).join('')}
       </div>
       <button class="link-btn pet-pop-open">Open calendar</button>`;
-    dock.appendChild(pop);
+    document.body.appendChild(pop);
+    pop.addEventListener('pointerdown', e => e.stopPropagation());
     positionPopover(dock, pop);
     pop.querySelector('.pet-pop-close').addEventListener('click', closePopover);
     pop.querySelector('.pet-pop-open').addEventListener('click', () => {
@@ -229,9 +240,19 @@ const Pet = (() => {
 
   /* ---------------- state / pose rendering ---------------- */
   async function setState(k) {
-    if (!MASTER_KEYS.includes(k)) return;
+    if (!allPoseKeys().includes(k)) return;
     state = k;
     await paint();
+  }
+  /* Automatic triggers (schedule popover, sleep timer) go through here so a
+     manual override in Settings sticks until the user clears it. */
+  function autoState(k) { if (!D.cfg.manualPose) setState(k); }
+  function setManualPose(k) {
+    D.cfg.manualPose = k || null;
+    save();
+    setState(k || 'idle');
+    const sel = document.getElementById('petManualSel');
+    if (sel) sel.value = k || '';
   }
   async function paint() {
     const node = document.getElementById('petFigure');
@@ -251,8 +272,8 @@ const Pet = (() => {
   }
   function armSleepTimer() {
     clearTimeout(sleepTimer);
-    if (state === 'sleep') setState('idle');
-    sleepTimer = setTimeout(() => { if (!popoverOpen) setState('sleep'); }, 5 * 60 * 1000);
+    if (state === 'sleep' && !D.cfg.manualPose) autoState('idle');
+    sleepTimer = setTimeout(() => { if (!popoverOpen) autoState('sleep'); }, 5 * 60 * 1000);
   }
 
   function render() {
@@ -272,10 +293,29 @@ const Pet = (() => {
         <label class="asst-set-label">Position</label>
         <button class="btn ghost" id="petResetPos">Reset to bottom right</button>
       </div>
+      <div class="asst-set-row">
+        <label class="asst-set-label">Size (<span id="petSizeLabel">${Math.round(D.cfg.scale*100)}%</span>)</label>
+        <input class="pet-size-slider" id="petSizeSlider" type="range" min="0.5" max="2.2" step="0.1" value="${D.cfg.scale}">
+      </div>
+      <div class="asst-set-row">
+        <label class="asst-set-label">Current pose</label>
+        <select class="inp" id="petManualSel">
+          <option value="">Automatic (reacts to your day)</option>
+          ${activePoses().map(p => `<option value="${p.k}" ${D.cfg.manualPose===p.k?'selected':''}>${esc(p.label)}</option>`).join('')}
+        </select>
+      </div>
 
       <p class="asst-set-hint">Choose ${MIN_ACTIVE}-${MAX_ACTIVE} poses (<span id="petPickCount">${D.active.length}</span> selected).
         Idle is always on \u2014 it's the fallback for every pose you don't pick or don't upload.</p>
       <div class="asst-pose-picker" id="petPosePicker"></div>
+
+      <p class="asst-set-hint">Add your own pose beyond the ${MASTER_POSES.length} built in (up to ${MAX_CUSTOM}).
+        Custom poses use the Idle silhouette as their placeholder \u2014 upload your own image to replace it.</p>
+      <div class="asst-custom-list" id="petCustomList"></div>
+      <div class="asst-custom-add">
+        <input class="inp" id="petCustomInp" placeholder="Pose name, e.g. Victory dance" maxlength="30">
+        <button class="btn ghost" id="petCustomAdd">Add pose</button>
+      </div>
 
       <p class="asst-set-hint">Upload an image for each pose you picked above.
         <a href="assets/pose-templates/pose-template-sheet.png" download class="link-btn">Download the pose template sheet</a>
@@ -287,7 +327,43 @@ const Pet = (() => {
     document.getElementById('petNameInp').addEventListener('change', e => {
       D.cfg.name = e.target.value.trim() || 'Pet'; save(); render();
     });
+    document.getElementById('petManualSel').addEventListener('change', e => setManualPose(e.target.value));
     document.getElementById('petResetPos').addEventListener('click', resetPosition);
+
+    function renderCustomList() {
+      const list = document.getElementById('petCustomList');
+      list.innerHTML = '';
+      D.custom.forEach(c => {
+        const row = el('div', 'asst-custom-item');
+        row.innerHTML = `<span>${esc(c.label)}</span><button class="link-btn" data-k="${c.k}">Remove</button>`;
+        row.querySelector('button').addEventListener('click', async () => {
+          D.custom = D.custom.filter(x => x.k !== c.k);
+          saveCustom();
+          if (D.cfg.manualPose === c.k) setManualPose(null);
+          await clearImg(c.k);
+          renderSettings(container);
+        });
+        list.appendChild(row);
+      });
+    }
+    renderCustomList();
+    document.getElementById('petCustomAdd').addEventListener('click', () => {
+      const inp = document.getElementById('petCustomInp');
+      const name = inp.value.trim();
+      if (!name) { toast('Give the pose a name first'); return; }
+      if (D.custom.length >= MAX_CUSTOM) { toast(`Up to ${MAX_CUSTOM} custom poses`); return; }
+      D.custom.push({ k: 'custom_' + uid(), label: name, hint: 'Custom pose' });
+      saveCustom();
+      inp.value = '';
+      renderSettings(container);
+    });
+    document.getElementById('petSizeSlider').addEventListener('input', e => {
+      D.cfg.scale = parseFloat(e.target.value);
+      document.getElementById('petSizeLabel').textContent = Math.round(D.cfg.scale * 100) + '%';
+      save();
+      const dock = document.getElementById('petDock');
+      if (dock) { applySize(dock); clampIntoView(dock); D.pos = { x: parseInt(dock.style.left)||0, y: parseInt(dock.style.top)||0 }; savePos(); }
+    });
 
     const picker = document.getElementById('petPosePicker');
     MASTER_POSES.forEach(p => {
@@ -320,13 +396,17 @@ const Pet = (() => {
         const cell = el('div', 'asst-pose-cell');
         const img = await loadImg(p.k);
         cell.innerHTML = `
-          <div class="asst-pose-thumb ${img ? '' : 'blank'}" style="${img ? `background-image:url('${img}')` : ''}">${img ? '' : blankFigureSVG(p.k, true)}</div>
-          <p class="asst-pose-name">${esc(p.label)}</p>
+          <div class="asst-pose-thumb ${img ? '' : 'blank'}" style="${img ? `background-image:url('${img}')` : ''}" title="Set as current pose">${img ? '' : blankFigureSVG(p.k, true)}</div>
+          <p class="asst-pose-name">${esc(p.label)}${D.cfg.manualPose===p.k ? ' \u2014 current' : ''}</p>
           <p class="asst-pose-hint">${esc(p.hint)}</p>
           <div class="asst-pose-actions">
             <label class="file-btn">Upload<input type="file" accept="image/*" hidden></label>
             ${img ? '<button class="link-btn asst-pose-clear">Remove</button>' : ''}
           </div>`;
+        cell.querySelector('.asst-pose-thumb').addEventListener('click', () => {
+          setManualPose(p.k);
+          renderPoseGrid();
+        });
         cell.querySelector('input[type=file]').addEventListener('change', async e => {
           const f = e.target.files[0]; if (!f) return;
           const dataUrl = await fileToDataUrl(f);

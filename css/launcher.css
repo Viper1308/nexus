@@ -6,8 +6,10 @@
 
 /* Scoped to `.on` so this never fights the base `.view{display:none}`
    rule that hides inactive tabs — an ID selector with a bare `display`
-   would otherwise win specificity and leave this view visible always. */
-#view-launcher.on{ display:flex; flex-direction:column; gap:16px; height:calc(100% - 4px); min-height:520px; }
+   would otherwise win specificity and leave this view visible always.
+   Height:100% only resolves because `.stage-inner` is given a definite
+   height (see the `:has()` rule in style.css) while this view is active. */
+#view-launcher.on{ display:flex; flex-direction:column; gap:16px; height:100%; padding:20px 28px; }
 
 /* ---- top status strip ---- */
 .launcher-topbar{

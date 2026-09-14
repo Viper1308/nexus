@@ -15,19 +15,34 @@
 .pet-figure.blank svg{display:block;width:100%;height:100%}
 
 .pet-popover{
-  position:fixed;width:260px;background:var(--panel);border:1px solid var(--line);
+  position:fixed;width:250px;background:var(--panel);border:1px solid var(--line);
   border-radius:var(--r);padding:12px 14px;box-shadow:0 12px 32px rgba(0,0,0,.45);
-  margin-bottom:12px;
+  opacity:0;transform:translateY(6px);transition:opacity .14s ease,transform .14s ease;
 }
-.pet-pop-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.pet-popover.open{opacity:1;transform:translateY(0)}
+.pet-popover::after{
+  content:'';position:absolute;bottom:34px;width:14px;height:14px;background:var(--panel);
+  border:1px solid var(--line);transform:rotate(45deg);
+}
+.pet-popover.tail-right::after{right:-8px;border-left:none;border-bottom:none}
+.pet-popover.tail-left::after{left:-8px;border-right:none;border-top:none}
+
+.pet-pop-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .pet-pop-date{font-size:13px;font-weight:600;color:var(--ink);margin:0}
 .pet-pop-close{color:var(--faint);cursor:pointer;width:16px;height:16px}
 .pet-pop-close:hover{color:var(--ink)}
-.pet-pop-body{display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;margin-bottom:10px}
+.pet-pop-schedule{display:flex;flex-direction:column;gap:8px;max-height:140px;overflow-y:auto;margin-bottom:8px}
 .pet-pop-empty{font-size:13px;color:var(--faint);margin:4px 0}
 .pet-pop-item{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--ink)}
 .pet-pop-item.done{color:var(--faint);text-decoration:line-through}
 .pet-pop-dot{width:8px;height:8px;border-radius:100px;flex-shrink:0}
+.pet-pop-actions{display:flex;gap:14px;padding-bottom:10px;margin-bottom:10px;border-bottom:1px solid var(--line)}
+.pet-pop-thread{display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;margin-bottom:8px}
+.pet-pop-thread:empty{display:none}
+.pet-bubble{max-width:88%;padding:7px 10px;border-radius:9px;font-size:12px;line-height:1.4}
+.pet-bubble.in{background:var(--panel-2);color:var(--ink);align-self:flex-start}
+.pet-bubble.out{background:var(--amber);color:#100b1c;align-self:flex-end}
+.pet-pop-input{margin-top:2px}
 
 /* ---- settings: edit pet (shared with prior pose-grid styling) ---- */
 .asst-set-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}

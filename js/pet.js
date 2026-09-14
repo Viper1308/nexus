@@ -184,58 +184,126 @@ const Pet = (() => {
     if (dock) placeAtSavedOrDefault(dock);
   }
 
-  /* ---------------- click behaviour: show today's schedule ---------------- */
+  /* ---------------- click behaviour: schedule + optional chat ---------------- */
   let popoverOpen = false;
+  let chatHistory = [];
+  let backendBroken = false;   // set true after first failed /api/assistant call, so we stop retrying noisily
+
   function togglePopover() { popoverOpen ? closePopover() : openPopover(); }
   function closePopover() {
+    if (!popoverOpen) return;
     popoverOpen = false;
     const pop = document.getElementById('petPopover');
-    if (pop) pop.remove();
+    if (pop) { pop.classList.remove('open'); setTimeout(() => pop.remove(), 140); }
     autoState('idle');
   }
   function openPopover() {
     popoverOpen = true;
-    const items = (typeof Cal !== 'undefined' && Cal.todayItems) ? Cal.todayItems() : [];
-    const overdue = items.some(i => i.kind === 'task' && !i.done);
-    autoState(items.length === 0 ? 'success' : (overdue ? 'alert' : 'talking'));
-
     const dock = document.getElementById('petDock');
     const pop = el('div', 'pet-popover');
     pop.id = 'petPopover';
-    const dateStr = new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' });
     pop.innerHTML = `
       <div class="pet-pop-head">
-        <p class="pet-pop-date">${esc(dateStr)}</p>
+        <p class="pet-pop-date">${esc(D.cfg.name)}</p>
         <button class="pet-pop-close" aria-label="Close">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M18 6L6 18M6 6l12 12"/></svg>
         </button>
       </div>
-      <div class="pet-pop-body">
-        ${items.length === 0
-          ? '<p class="pet-pop-empty">Nothing on the calendar for today.</p>'
-          : items.map(i => `
-            <div class="pet-pop-item${i.done ? ' done' : ''}">
-              <span class="pet-pop-dot" style="background:${i.color}"></span>
-              <span>${esc(i.text)}</span>
-            </div>`).join('')}
+      <div class="pet-pop-schedule" id="petSchedule"></div>
+      <div class="pet-pop-actions">
+        <button class="link-btn" id="petOpenCal">Open calendar</button>
+        <button class="link-btn" id="petRefresh">Refresh</button>
       </div>
-      <button class="link-btn pet-pop-open">Open calendar</button>`;
+      <div class="pet-pop-thread" id="petThread"></div>
+      <div class="pet-pop-input">
+        <input class="inp" id="petChatInput" placeholder="Ask me anything...">
+      </div>`;
     document.body.appendChild(pop);
     pop.addEventListener('pointerdown', e => e.stopPropagation());
     positionPopover(dock, pop);
+    requestAnimationFrame(() => pop.classList.add('open'));
+
     pop.querySelector('.pet-pop-close').addEventListener('click', closePopover);
-    pop.querySelector('.pet-pop-open').addEventListener('click', () => {
+    pop.querySelector('#petOpenCal').addEventListener('click', () => {
       closePopover();
       const nav = document.querySelector('.nav-item[data-view="calendar"]');
       if (nav) nav.click();
     });
+    pop.querySelector('#petRefresh').addEventListener('click', renderSchedule);
+    pop.querySelector('#petChatInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.target.value.trim()) {
+        sendChat(e.target.value.trim());
+        e.target.value = '';
+      }
+    });
+    renderSchedule();
   }
+
+  function renderSchedule() {
+    const items = (typeof Cal !== 'undefined' && Cal.todayItems) ? Cal.todayItems() : [];
+    const overdue = items.some(i => i.kind === 'task' && !i.done);
+    autoState(items.length === 0 ? 'success' : (overdue ? 'alert' : 'talking'));
+    const box = document.getElementById('petSchedule');
+    if (!box) return;
+    box.innerHTML = items.length === 0
+      ? '<p class="pet-pop-empty">Nothing on the calendar for today.</p>'
+      : items.map(i => `
+        <div class="pet-pop-item${i.done ? ' done' : ''}">
+          <span class="pet-pop-dot" style="background:${i.color}"></span>
+          <span>${esc(i.text)}</span>
+        </div>`).join('');
+    return items;
+  }
+
+  function bubble(text, dir) {
+    const b = el('div', 'pet-bubble ' + dir);
+    b.textContent = text;
+    return b;
+  }
+  async function sendChat(text) {
+    const thread = document.getElementById('petThread');
+    thread.appendChild(bubble(text, 'out'));
+    thread.scrollTop = thread.scrollHeight;
+    chatHistory.push({ role: 'user', content: text });
+    if (backendBroken) {
+      thread.appendChild(bubble("The assistant backend isn't reachable right now — the schedule and quick actions above still work.", 'in'));
+      thread.scrollTop = thread.scrollHeight;
+      return;
+    }
+    autoState('thinking');
+    try {
+      const items = (typeof Cal !== 'undefined' && Cal.todayItems) ? Cal.todayItems() : [];
+      const r = await fetch('/api/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history: chatHistory.slice(0, -1), today: items })
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'Backend error');
+      backendBroken = false;
+      chatHistory.push({ role: 'assistant', content: data.reply });
+      autoState('talking');
+      thread.appendChild(bubble(data.reply, 'in'));
+    } catch (e) {
+      backendBroken = true;
+      autoState('error');
+      thread.appendChild(bubble("Couldn't reach the assistant backend — the schedule and quick actions above still work.", 'in'));
+    }
+    thread.scrollTop = thread.scrollHeight;
+  }
+
   function positionPopover(dock, pop) {
     const r = dock.getBoundingClientRect();
+    const gap = 16;
     const openLeft = r.left > window.innerWidth / 2;
-    pop.style.bottom = (window.innerHeight - r.top) + 'px';
-    if (openLeft) { pop.style.right = (window.innerWidth - r.right) + 'px'; }
-    else { pop.style.left = r.left + 'px'; }
+    pop.style.bottom = Math.max(8, window.innerHeight - r.top - r.height * 0.15) + 'px';
+    if (openLeft) {
+      pop.style.right = (window.innerWidth - r.left + gap) + 'px';
+      pop.classList.add('tail-right');
+    } else {
+      pop.style.left = (r.right + gap) + 'px';
+      pop.classList.add('tail-left');
+    }
   }
 
   /* ---------------- state / pose rendering ---------------- */

@@ -363,7 +363,7 @@ const Pet = (() => {
       </div>
       <div class="asst-set-row">
         <label class="asst-set-label">Size (<span id="petSizeLabel">${Math.round(D.cfg.scale*100)}%</span>)</label>
-        <input class="pet-size-slider" id="petSizeSlider" type="range" min="0.5" max="2.2" step="0.1" value="${D.cfg.scale}">
+        <input class="pet-size-slider" id="petSizeSlider" type="range" min="0.5" max="4" step="0.1" value="${D.cfg.scale}">
       </div>
       <div class="asst-set-row">
         <label class="asst-set-label">Current pose</label>

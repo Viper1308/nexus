@@ -364,6 +364,34 @@
         <div class="margin-grid" id="thList"></div>
       </section>
 
+      <!-- ══ (js/vault.js) ══ -->
+      <section class="view" id="view-vault">
+        <div class="page-head-row">
+          <div><h1>Margin</h1><p class="sub">Collect thoughts. Connect ideas.</p></div>
+          <button class="vault-lock" id="vtLock" title="Lock (shift-click to change the passphrase)">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></svg>
+            <span>Lock</span>
+          </button>
+        </div>
+        <div class="margin-head">
+          <textarea id="vtInput" class="inp area big" rows="2" placeholder="A thought, half-formed. ⌘/Ctrl+Enter to keep it, or paste/attach a picture."></textarea>
+          <div class="margin-attach" id="vtAttachPreview" hidden>
+            <div class="margin-attach-thumb" id="vtAttachThumb"></div>
+            <button class="margin-attach-x" id="vtAttachRemove" title="Remove picture">✕</button>
+          </div>
+          <div class="margin-controls">
+            <div class="seg" id="vtKind"><button data-k="thought" class="on">Thought</button><button data-k="quote">Quote</button></div>
+            <input id="vtWho" class="inp" placeholder="Said by…" hidden>
+            <button class="margin-attach-btn" id="vtAttachBtn" title="Attach a picture">📎</button>
+            <input type="file" id="vtAttachFile" accept="image/*" hidden>
+            <input id="vtSearch" class="inp" placeholder="Search / #tag">
+            <button class="btn" id="vtNewBtn">+ New note</button>
+          </div>
+        </div>
+        <div class="margin-tagrow" id="vtTagRow"></div>
+        <div class="margin-grid" id="vtList"></div>
+      </section>
+
       <!-- ══ THE DOCKET ══ -->
       <section class="view" id="view-docket">
       <div id="ep-root">
@@ -506,6 +534,7 @@
 <script src="js/docket.js?v=20260901.9"></script>
 <script src="js/docket-extra.js?v=20260901.9"></script>
 <script src="js/mobile.js?v=20260901.9"></script>
+<script src="js/vault.js?v=20260901.9"></script>
 <script src="js/app.js?v=20260901.9"></script>
 </body>
 </html>

@@ -23,6 +23,7 @@ const Vault = (() => {
   const ITER = 600000;           // PBKDF2 rounds (OWASP's current figure)
   const IDLE_MS = 5 * 60 * 1000; // lock after this long with no activity
   const HIDDEN_MS = 45 * 1000;   // lock this long after the tab goes away
+  const MAX_MEDIA = 45 * 1024 * 1024; // biggest GIF / video accepted (Supabase's default per-file cap is 50 MB)
 
   /* ── session state (memory only, never persisted) ──────────────── */
   let ckey = null;      // CryptoKey
@@ -30,8 +31,12 @@ const Vault = (() => {
   let list = [];        // decrypted notes
   let isOpen = false;
   let kind = 'thought', q = '', pendingImg = null;
+  let pendingRaw = null;   // { file, mt, url } — a GIF or video waiting to be kept
+  const mediaCache = new Map();   // note id -> Promise<object URL>, this session only
+  let mediaObserver = null;       // plays the videos on screen, pauses the rest
+  let epoch = 0;                  // bumps on every lock, so late decrypts are discarded
   let idleTimer = null, hiddenTimer = null, fails = 0;
-  let wired = false;
+  let wired = false, adding = false;
 
   /* ══════════════ crypto ══════════════ */
   const enc = new TextEncoder(), dec = new TextDecoder();
@@ -78,6 +83,21 @@ const Vault = (() => {
     out.set(iv, 0); out.set(ct, iv.length);
     return B64HEAD + b64(out);
   }
+  /* GIFs and videos are sealed as raw bytes (no data: URL round trip), which
+     keeps a big file ~1.33x its size instead of ~1.8x. Same envelope. */
+  async function sealBytes(bytes, k) {
+    const iv = crypto.getRandomValues(new Uint8Array(12));
+    const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, k || ckey, bytes));
+    const out = new Uint8Array(iv.length + ct.length);
+    out.set(iv, 0); out.set(ct, iv.length);
+    return B64HEAD + b64(out);
+  }
+  async function unsealBytes(packed, k) {
+    if (!packed || packed.indexOf('base64,') < 0) return null;
+    const raw = unb64(packed.slice(packed.indexOf('base64,') + 7));
+    return new Uint8Array(await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: raw.slice(0, 12) }, k || ckey, raw.subarray(12)));
+  }
   async function unsealImg(packed, k) {
     if (!packed || packed.indexOf('base64,') < 0) return null;
     const raw = unb64(packed.slice(packed.indexOf('base64,') + 7));
@@ -120,6 +140,72 @@ const Vault = (() => {
     const raw = await Store.getImg(IMG + id);
     if (!raw) return null;
     try { return await unsealImg(raw); } catch (e) { return null; }
+  }
+
+  /* ── GIFs and videos ── */
+  const EXT_TYPE = { mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm', mov: 'video/quicktime', gif: 'image/gif' };
+  const isVideo = mt => !!mt && mt.startsWith('video/');
+  function mediaType(file) {
+    const t = (file.type || '').toLowerCase();
+    if (t) return t;
+    return EXT_TYPE[(file.name || '').split('.').pop().toLowerCase()] || '';
+  }
+  async function putMedia(id, file) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    await Store.putImg(IMG + id, await sealBytes(bytes));
+  }
+  async function getMediaBytes(id) {
+    const raw = await Store.getImg(IMG + id);
+    if (!raw) return null;
+    try { return await unsealBytes(raw); } catch (e) { return null; }
+  }
+  // Decrypts once per session and hands back a blob: URL. Revoked on lock.
+  function mediaUrl(item) {
+    if (mediaCache.has(item.id)) return mediaCache.get(item.id);
+    const ep = epoch;
+    const p = (async () => {
+      const bytes = await getMediaBytes(item.img);
+      if (!bytes || !isOpen || ep !== epoch) return null;
+      return URL.createObjectURL(new Blob([bytes], { type: item.mt }));
+    })();
+    mediaCache.set(item.id, p);
+    return p;
+  }
+  function dropMedia(id) {
+    const p = mediaCache.get(id);
+    if (p) p.then(u => u && URL.revokeObjectURL(u));
+    mediaCache.delete(id);
+  }
+  function watcher() {
+    if (mediaObserver) return mediaObserver;
+    mediaObserver = new IntersectionObserver(entries => entries.forEach(en => {
+      const v = en.target;
+      if (en.isIntersecting) { if (v._load) v._load(); else v.play().catch(() => { }); }
+      else v.pause();
+    }), { rootMargin: '250px' });
+    return mediaObserver;
+  }
+  function openVideo(url, caption) {
+    closeVideo();
+    const o = el('div', 'vault-vlb'); o.id = 'vaultVideoLb';
+    const v = document.createElement('video');
+    v.src = url; v.controls = true; v.loop = true; v.autoplay = true; v.playsInline = true;
+    o.appendChild(v);
+    if (caption) o.appendChild(el('div', 'vault-vlb-cap', caption));
+    o.onclick = e => { if (e.target === o) closeVideo(); };
+    ['pointerdown', 'keydown', 'wheel'].forEach(ev => o.addEventListener(ev, bumpIdle, { passive: true }));
+    document.body.appendChild(o);
+    v.play().catch(() => { v.muted = true; v.play().catch(() => { }); });
+  }
+  function closeVideo() {
+    const o = document.getElementById('vaultVideoLb');
+    if (!o) return;
+    const v = o.querySelector('video'); if (v) { v.pause(); v.removeAttribute('src'); v.load(); }
+    o.remove();
+  }
+  function clearPending() {
+    pendingImg = null;
+    if (pendingRaw) { URL.revokeObjectURL(pendingRaw.url); pendingRaw = null; }
   }
 
   /* ══════════════ the decoy on the shelf ══════════════ */
@@ -231,8 +317,13 @@ const Vault = (() => {
         // pictures first, so a failure part-way leaves the old key still valid
         for (const item of list) {
           if (!item.img) continue;
-          const plain = await getImage(item.img);
-          if (plain) await Store.putImg(IMG + item.img, await sealImg(plain, newKey));
+          if (item.mt) {
+            const bytes = await getMediaBytes(item.img);
+            if (bytes) await Store.putImg(IMG + item.img, await sealBytes(bytes, newKey));
+          } else {
+            const plain = await getImage(item.img);
+            if (plain) await Store.putImg(IMG + item.img, await sealImg(plain, newKey));
+          }
         }
         salt = newSalt; ckey = newKey;
         await persist();
@@ -256,7 +347,7 @@ const Vault = (() => {
     v.classList.add('on');
     document.querySelector('.stage') && (document.querySelector('.stage').scrollTop = 0);
     // deliberately not written to ui.view — a reload never lands you back in here
-    q = ''; kind = 'thought'; pendingImg = null;
+    q = ''; kind = 'thought'; clearPending();
     const s = document.getElementById('vtSearch'); if (s) s.value = '';
     render();
     bumpIdle();
@@ -265,14 +356,18 @@ const Vault = (() => {
   function lock(silent) {
     if (!isOpen) return;
     isOpen = false;
-    ckey = null; salt = null; list = []; pendingImg = null; q = '';
+    ckey = null; salt = null; list = []; clearPending(); q = '';
+    epoch++;
     clearTimeout(idleTimer); clearTimeout(hiddenTimer);
-    closeGate();
+    closeGate(); closeVideo();
+    if (mediaObserver) mediaObserver.disconnect();
     const v = document.getElementById('view-vault');
     if (v) v.classList.remove('on');
     ['vtInput', 'vtWho', 'vtSearch'].forEach(id => { const n = document.getElementById(id); if (n) n.value = ''; });
     const l = document.getElementById('vtList'); if (l) l.innerHTML = '';
     const t = document.getElementById('vtTagRow'); if (t) t.innerHTML = '';
+    mediaCache.forEach(p => p.then(u => u && URL.revokeObjectURL(u)));
+    mediaCache.clear();
     paintAttach();
     const lb = document.getElementById('galleryLightbox');
     if (lb) { lb.classList.add('hidden'); const im = document.getElementById('galleryLbImg'); if (im) im.src = ''; }
@@ -311,33 +406,75 @@ const Vault = (() => {
     });
   }
   async function stageFile(file) {
-    if (!file || !file.type || !file.type.startsWith('image/')) return;
-    pendingImg = await shrink(await readFileAsDataUrl(file));
-    paintAttach();
+    if (!file) return;
+    const mt = mediaType(file);
+    if (mt.startsWith('image/') && mt !== 'image/gif') {       // stills: shrink as before
+      clearPending();
+      pendingImg = await shrink(await readFileAsDataUrl(file));
+      paintAttach();
+      return;
+    }
+    if (mt === 'image/gif' || isVideo(mt)) {                   // animated: keep the bytes untouched
+      if (file.size > MAX_MEDIA) {
+        toast(`That one is ${(file.size / 1048576).toFixed(0)} MB. The limit is ${(MAX_MEDIA / 1048576).toFixed(0)} MB.`);
+        return;
+      }
+      if (isVideo(mt) && !document.createElement('video').canPlayType(mt)) {
+        toast("This browser can't play that kind of video. An MP4 (H.264) works everywhere.");
+        return;
+      }
+      clearPending();
+      pendingRaw = { file, mt, url: URL.createObjectURL(file) };
+      paintAttach();
+      return;
+    }
+    toast('Pictures, GIFs and MP4s only.');
   }
   function paintAttach() {
     const wrap = document.getElementById('vtAttachPreview'), thumb = document.getElementById('vtAttachThumb');
     if (!wrap || !thumb) return;
-    if (pendingImg) { thumb.style.backgroundImage = `url(${pendingImg})`; wrap.hidden = false; }
-    else { thumb.style.backgroundImage = ''; wrap.hidden = true; }
+    thumb.innerHTML = ''; thumb.style.backgroundImage = '';
+    if (pendingRaw && isVideo(pendingRaw.mt)) {
+      const v = document.createElement('video');
+      v.src = pendingRaw.url; v.muted = true; v.loop = true; v.autoplay = true; v.playsInline = true;
+      v.style.cssText = 'width:100%;height:100%;object-fit:cover;display:block';
+      thumb.appendChild(v); v.play().catch(() => { });
+      wrap.hidden = false;
+    } else if (pendingRaw || pendingImg) {
+      thumb.style.backgroundImage = `url("${pendingRaw ? pendingRaw.url : pendingImg}")`;
+      wrap.hidden = false;
+    } else wrap.hidden = true;
   }
 
   async function add() {
     if (!isOpen) return;
     const ta = document.getElementById('vtInput');
     const text = ta.value.trim();
-    if (!text && !pendingImg) return;
+    if (!text && !pendingImg && !pendingRaw) return;
+    if (adding) return;
+    adding = true;
+    try {
     const who = document.getElementById('vtWho').value.trim();
     const entry = { id: uid(), text, kind, who, at: Date.now() };
-    if (pendingImg) {
+    if (pendingRaw) {
+      const raw = pendingRaw;
+      toast('Sealing…');
+      entry.img = uid(); entry.mt = raw.mt;
+      await putMedia(entry.img, raw.file);     // no copy to the Gallery, on purpose
+    } else if (pendingImg) {
       entry.img = uid();
       await putImage(entry.img, pendingImg);   // no copy to the Gallery, on purpose
     }
+    if (!isOpen) return;                        // locked while it was sealing
     list.unshift(entry);
     ta.value = ''; document.getElementById('vtWho').value = '';
-    pendingImg = null; paintAttach();
+    clearPending(); paintAttach();
     await persist();
     render();
+    } catch (e) {
+      console.warn('vault add failed', e);
+      toast('Could not save that one. The browser may be out of space.');
+    } finally { adding = false; }
   }
 
   function openLightbox(dataUrl, caption) {
@@ -369,6 +506,7 @@ const Vault = (() => {
   function render() {
     const host = document.getElementById('vtList');
     if (!host) return;
+    if (mediaObserver) mediaObserver.disconnect();
     host.innerHTML = '';
     renderTagRow();
     const needle = q.toLowerCase();
@@ -380,11 +518,36 @@ const Vault = (() => {
     shown.forEach(i => {
       const c = el('div', 'note-card' + (i.kind === 'quote' ? ' quote' : '') + (i.img ? ' has-img' : ''));
       const body = esc(i.text).replace(/#([\w-]+)/g, '<span class="tag">#$1</span>');
-      c.innerHTML = `${i.img ? '<img class="note-img" alt="">' : ''}
+      const vid = !!(i.img && isVideo(i.mt));
+      c.innerHTML = `${i.img && !vid ? '<img class="note-img" alt="">' : ''}
         ${i.text ? `<p>${body}</p>` : ''}${i.who ? `<div class="who">— ${esc(i.who)}</div>` : ''}
         <div class="when">${new Date(i.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
         <button class="x">✕</button>`;
-      if (i.img) {
+      if (vid) {
+        // Muted, looping, autoplaying. Decrypts when it nears the screen, pauses when it leaves.
+        const v = document.createElement('video');
+        v.className = 'note-img note-video';
+        v.muted = true; v.defaultMuted = true; v.loop = true; v.autoplay = true; v.playsInline = true;
+        v.setAttribute('muted', ''); v.setAttribute('playsinline', '');
+        v.preload = 'auto'; v.style.aspectRatio = '16 / 9';
+        v.addEventListener('loadedmetadata', () => { v.style.aspectRatio = ''; });
+        v._load = async () => {
+          v._load = null;
+          const u = await mediaUrl(i);
+          if (!u || !isOpen) return;
+          v.src = u; v.play().catch(() => { });
+          v.onclick = () => openVideo(u, i.who ? `— ${i.who}` : '');
+        };
+        c.insertBefore(v, c.firstChild);
+        watcher().observe(v);
+      } else if (i.img && i.mt) {
+        const imgEl = c.querySelector('.note-img');
+        mediaUrl(i).then(u => {
+          if (!u || !isOpen) return;
+          imgEl.src = u;
+          imgEl.onclick = () => openLightbox(u, i.who ? `— ${i.who}` : '');
+        });
+      } else if (i.img) {
         const imgEl = c.querySelector('.note-img');
         getImage(i.img).then(u => {
           if (!u || !isOpen) return;
@@ -395,6 +558,7 @@ const Vault = (() => {
       c.querySelectorAll('.tag').forEach(t => t.onclick = () => { q = t.textContent; document.getElementById('vtSearch').value = q; render(); });
       c.querySelector('.x').onclick = async () => {
         if (i.img) Store.delImg(IMG + i.img);
+        dropMedia(i.id);
         list = list.filter(x => x !== i);
         await persist(); render();
       };
@@ -417,14 +581,26 @@ const Vault = (() => {
 
     ta.addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) { e.preventDefault(); add(); } });
     ta.addEventListener('paste', e => {
-      const it = [...(e.clipboardData?.items || [])].find(x => x.type && x.type.startsWith('image/'));
+      const it = [...(e.clipboardData?.items || [])].find(x => x.type && (x.type.startsWith('image/') || x.type.startsWith('video/')));
       if (!it) return;
       e.preventDefault();
       stageFile(it.getAsFile());
     });
     document.getElementById('vtAttachBtn').onclick = () => document.getElementById('vtAttachFile').click();
     document.getElementById('vtAttachFile').onchange = e => { const f = e.target.files && e.target.files[0]; if (f) stageFile(f); e.target.value = ''; };
-    document.getElementById('vtAttachRemove').onclick = () => { pendingImg = null; paintAttach(); };
+    document.getElementById('vtAttachRemove').onclick = () => { clearPending(); paintAttach(); };
+
+    // Drop a file anywhere on the vault page to attach it.
+    const vv = document.getElementById('view-vault');
+    vv.addEventListener('dragover', e => {
+      if (isOpen && [...(e.dataTransfer?.types || [])].includes('Files')) e.preventDefault();
+    });
+    vv.addEventListener('drop', e => {
+      if (!isOpen) return;
+      const f = e.dataTransfer?.files && e.dataTransfer.files[0];
+      if (!f) return;
+      e.preventDefault(); stageFile(f);
+    });
 
     document.querySelectorAll('#vtKind button').forEach(b => b.onclick = () => {
       kind = b.dataset.k;
@@ -432,7 +608,7 @@ const Vault = (() => {
       document.getElementById('vtWho').hidden = kind !== 'quote';
       ta.placeholder = kind === 'quote'
         ? 'The quote, as written. ⌘/Ctrl+Enter to keep it.'
-        : 'A thought, half-formed. ⌘/Ctrl+Enter to keep it, or paste/attach a picture.';
+        : 'A thought, half-formed. ⌘/Ctrl+Enter to keep it, or paste/attach a picture, GIF or video.';
     });
     document.getElementById('vtSearch').oninput = e => { q = e.target.value.trim(); render(); };
     document.getElementById('vtNewBtn').onclick = () => ta.focus();
@@ -454,6 +630,7 @@ const Vault = (() => {
     document.addEventListener('keydown', e => {
       if (!isOpen) return;
       if (e.key === 'Escape') {
+        if (document.getElementById('vaultVideoLb')) { closeVideo(); return; }
         if (document.getElementById('vaultGate')) { closeGate(); return; }
         const lb = document.getElementById('galleryLightbox');
         if (lb && !lb.classList.contains('hidden')) return;   // let the lightbox close first

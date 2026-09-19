@@ -11,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,700;12..96,800&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css?v=20260901.9">
+<link rel="stylesheet" href="css/style.css?v=20260919.2">
 <link rel="stylesheet" href="css/hud-theme.css?v=20260901.9">
 </head>
 <body>
@@ -374,7 +374,7 @@
           </button>
         </div>
         <div class="margin-head">
-          <textarea id="vtInput" class="inp area big" rows="2" placeholder="A thought, half-formed. ⌘/Ctrl+Enter to keep it, or paste/attach a picture."></textarea>
+          <textarea id="vtInput" class="inp area big" rows="2" placeholder="A thought, half-formed. ⌘/Ctrl+Enter to keep it, or paste/attach a picture, GIF or video."></textarea>
           <div class="margin-attach" id="vtAttachPreview" hidden>
             <div class="margin-attach-thumb" id="vtAttachThumb"></div>
             <button class="margin-attach-x" id="vtAttachRemove" title="Remove picture">✕</button>
@@ -382,8 +382,8 @@
           <div class="margin-controls">
             <div class="seg" id="vtKind"><button data-k="thought" class="on">Thought</button><button data-k="quote">Quote</button></div>
             <input id="vtWho" class="inp" placeholder="Said by…" hidden>
-            <button class="margin-attach-btn" id="vtAttachBtn" title="Attach a picture">📎</button>
-            <input type="file" id="vtAttachFile" accept="image/*" hidden>
+            <button class="margin-attach-btn" id="vtAttachBtn" title="Attach a picture, GIF or video">📎</button>
+            <input type="file" id="vtAttachFile" accept="image/*,video/mp4,video/webm,video/quicktime,.mp4,.m4v,.webm,.mov,.gif" hidden>
             <input id="vtSearch" class="inp" placeholder="Search / #tag">
             <button class="btn" id="vtNewBtn">+ New note</button>
           </div>
@@ -534,7 +534,7 @@
 <script src="js/docket.js?v=20260901.9"></script>
 <script src="js/docket-extra.js?v=20260901.9"></script>
 <script src="js/mobile.js?v=20260901.9"></script>
-<script src="js/vault.js?v=20260901.9"></script>
+<script src="js/vault.js?v=20260919.2"></script>
 <script src="js/app.js?v=20260901.9"></script>
 </body>
 </html>

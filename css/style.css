@@ -993,3 +993,13 @@ body,.app{min-width:0}
 @media (max-width:760px){
   .app{padding:0}.stage{border:0;border-radius:0}.side-nav{border-radius:0;padding:6px}.page-topbar{top:0;margin:0 -16px 14px;padding:0 16px}.nav-item{font-size:9px}.nav-item.active{box-shadow:inset 0 1px var(--amber)}.dash-row2,.dash-stats-row,.dash-bottom,.dash-more-grid,.profile-top,.profile-grid3,.profile-grid4,.profile-stat-strip,.web-layout,.cal-rig,.docket-layout{gap:8px}.dash-status{min-height:160px}.docket-side{grid-column:auto;display:flex}.shelf-head .inp{flex:1 1 130px}.web-layout{height:auto;min-height:580px}
 }
+
+/* ---- vault: GIFs & videos (js/vault.js) ---- */
+.margin-attach-thumb{overflow:hidden}
+.note-card video.note-img{background:#000;object-fit:contain}
+.vault-vlb{
+  position:fixed;inset:0;z-index:650;background:rgba(5,4,9,.93);backdrop-filter:blur(6px);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;
+}
+.vault-vlb video{max-width:min(96vw,1400px);max-height:86vh;border-radius:12px;background:#000;outline:none}
+.vault-vlb-cap{color:var(--dim);font-size:13px}

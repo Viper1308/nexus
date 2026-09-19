@@ -631,7 +631,7 @@ a{color:inherit}
 .margin-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .margin-head .inp.area.big{flex:1 1 320px}
 .margin-controls{display:flex;align-items:center;gap:8px;width:100%;margin-top:10px;flex-wrap:wrap}
-.margin-controls #thSearch,.margin-controls #vtSearch{flex:1;min-width:160px}
+.margin-controls #thSearch{flex:1;min-width:160px}
 .margin-attach{display:flex;align-items:center;gap:10px;margin-top:8px}
 .margin-attach-thumb{width:48px;height:48px;border-radius:9px;background:var(--panel-2) center/cover;border:1px solid var(--line)}
 .margin-attach-x{color:var(--faint);font-size:12px}
@@ -652,31 +652,6 @@ a{color:inherit}
 .note-card .x{position:absolute;top:12px;right:14px;color:var(--faint);font-size:11px;opacity:0}
 .note-card:hover .x{opacity:1}
 .note-card .tag{color:var(--amber);cursor:pointer;font-weight:500}
-
-/* ---- the locked twin (js/vault.js) ---- */
-.vault-lock{
-  display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:100px;
-  background:var(--panel-2);border:1px solid var(--line);color:var(--faint);font-size:11.5px;
-  letter-spacing:.04em;align-self:center;
-}
-.vault-lock:hover{color:var(--amber);border-color:var(--amber)}
-.vault-gate{
-  position:fixed;inset:0;z-index:600;background:rgba(6,4,10,.78);backdrop-filter:blur(7px);
-  display:flex;align-items:center;justify-content:center;padding:20px;
-}
-.vault-gate-card{
-  display:flex;gap:24px;background:var(--panel);border:1px solid var(--line);border-radius:18px;
-  padding:26px;max-width:520px;width:100%;box-shadow:0 30px 70px rgba(0,0,0,.55);
-}
-.vault-gate-spine{width:96px;flex:0 0 96px;border-radius:7px;box-shadow:0 14px 30px rgba(0,0,0,.45)}
-.vault-gate-card.solo .vault-gate-body{width:100%}
-.vault-gate-body{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
-.vault-gate-ttl{font-size:17px;font-weight:700;line-height:1.25}
-.vault-gate-aut{color:var(--dim);font-size:12.5px;margin-bottom:6px}
-.vault-gate-err{font-size:11.5px;color:var(--faint);line-height:1.5;min-height:16px;margin:0}
-.vault-gate-err.bad{color:var(--rose)}
-body.is-mobile .vault-gate-card{flex-direction:column;gap:16px}
-body.is-mobile .vault-gate-spine{width:100%;flex:0 0 74px;height:74px}
 
 /* ============================================================
    THE DOCKET
@@ -993,13 +968,3 @@ body,.app{min-width:0}
 @media (max-width:760px){
   .app{padding:0}.stage{border:0;border-radius:0}.side-nav{border-radius:0;padding:6px}.page-topbar{top:0;margin:0 -16px 14px;padding:0 16px}.nav-item{font-size:9px}.nav-item.active{box-shadow:inset 0 1px var(--amber)}.dash-row2,.dash-stats-row,.dash-bottom,.dash-more-grid,.profile-top,.profile-grid3,.profile-grid4,.profile-stat-strip,.web-layout,.cal-rig,.docket-layout{gap:8px}.dash-status{min-height:160px}.docket-side{grid-column:auto;display:flex}.shelf-head .inp{flex:1 1 130px}.web-layout{height:auto;min-height:580px}
 }
-
-/* ---- vault: GIFs & videos (js/vault.js) ---- */
-.margin-attach-thumb{overflow:hidden}
-.note-card video.note-img{background:#000;object-fit:contain}
-.vault-vlb{
-  position:fixed;inset:0;z-index:650;background:rgba(5,4,9,.93);backdrop-filter:blur(6px);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:24px;
-}
-.vault-vlb video{max-width:min(96vw,1400px);max-height:86vh;border-radius:12px;background:#000;outline:none}
-.vault-vlb-cap{color:var(--dim);font-size:13px}

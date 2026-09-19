@@ -328,7 +328,6 @@
     safeInit('stacks', () => Stacks.init());
     safeInit('calendar', () => Cal.init());
     safeInit('margin', () => Margin.init());
-    safeInit('vault', () => Vault.init());
     safeInit('gallery', () => Gallery.init());
     safeInit('dashboard', () => Dashboard.init());
     safeInit('docket', () => Docket.init());

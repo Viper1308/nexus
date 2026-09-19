@@ -212,26 +212,22 @@ const Books = (() => {
     const bookcase = el('div', 'bookcase');
     SHELVES.forEach(([k, name]) => {
       const list = books.filter(b => b.status === k);
-      // The last spine on "Want to read" is a decoy — see js/vault.js.
-      const extra = (k === 'want' && typeof Vault !== 'undefined') ? Vault.decoy() : null;
       const sh = el('div', 'shelf');
       sh.dataset.status = k;
-      sh.innerHTML = `<div class="shelf-label">${name} · ${list.length + (extra ? 1 : 0)}</div>`;
+      sh.innerHTML = `<div class="shelf-label">${name} · ${list.length}</div>`;
       const back = el('div', 'shelf-back');
       const row = el('div', 'shelf-books');
-      if (!list.length && !extra) row.appendChild(el('div', 'shelf-empty', k === 'reading' ? 'Nothing open right now.' : 'Empty.'));
-      const shelve = (b, onOpen) => {
+      if (!list.length) row.appendChild(el('div', 'shelf-empty', k === 'reading' ? 'Nothing open right now.' : 'Empty.'));
+      list.forEach(b => {
         const h = 128 + (hash(b.title) % 44);
         const w = 28 + (hash(b.title + 'w') % 16);
         const s = el('div', 'spine');
         s.style.cssText = `height:${h}px;width:${w}px;background:${b.spine};color:${b.text}`;
         s.innerHTML = `<span>${esc(b.title)}</span>`;
         s.title = `${b.title}${b.author ? ' — ' + b.author : ''}`;
-        s.onclick = () => onOpen(s);
+        s.onclick = () => open(b, s);
         row.appendChild(s);
-      };
-      list.forEach(b => shelve(b, s => open(b, s)));
-      if (extra) shelve(extra, () => Vault.knock());
+      });
       back.appendChild(row);
       sh.appendChild(back);
       sh.appendChild(el('div', 'shelf-plank'));
@@ -240,8 +236,7 @@ const Books = (() => {
     host.appendChild(bookcase);
     applyFilter();
     const hint = document.getElementById('bkHint');
-    const total = books.length + (typeof Vault !== 'undefined' ? 1 : 0);
-    if (hint) hint.textContent = books.length ? `${total} on the shelf` : 'Covers and spine colours come from Open Library.';
+    if (hint) hint.textContent = books.length ? `${books.length} on the shelf` : 'Covers and spine colours come from Open Library.';
   }
 
   /* ---- pull book off shelf, turn to face you ---- */
